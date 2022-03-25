@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Blog from './components/Blog'
 import blogService from './services/blogs'
 import axios from 'axios'
-
+import LoginForm from './components/LoginForm'
+import Toggleable from './components/Toggleable'
+import CreateBlog from './components/CreateBlog'
 
 const Notification = ({ message, setMessage }) => {
   return (
@@ -12,19 +14,43 @@ const Notification = ({ message, setMessage }) => {
   )
 }
 
+const App = () => {
+  const [blogs, setBlogs] = useState([])
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [user, setUser] = useState(null)
+  const [message, setMessage] = useState({
+    message: null,
+    styleObj: null
+  })
 
-const Login = ({ setUsername, username, setPassword, password, setUser, setMessage }) => {
-  const handleForm = async (event) => {
+  const LoginFormRef = useRef()
+
+  useEffect(() => {
+    blogService.getAll().then(blogs => {
+      blogs.sort((fblog, sblog) => sblog.likes - fblog.likes)
+      setBlogs(blogs)
+    })
+    return () => { setBlogs(null) }
+  }, [])
+
+  useEffect(() => {
+    blogService.getUser().then(user => { if (user !== null) { setUser(user) } })
+    return () => { setUser(null) }
+  }, [])
+
+  const handleLoginForm = async (event) => {
     event.preventDefault()
     try {
       const result = await axios.post('/api/login', {
         username, password
       })
+
       setUsername('')
       setPassword('')
+      window.localStorage.setItem('loggedUser', JSON.stringify(result.data))
       setUser(result.data)
       blogService.setToken(result.data.token)
-      window.localStorage.setItem('loggedUser', JSON.stringify(result.data))
     } catch (error) {
       setMessage({
         message: `invalid username or passwod`,
@@ -45,92 +71,6 @@ const Login = ({ setUsername, username, setPassword, password, setUser, setMessa
     }
   }
 
-  return (
-    <div>
-      <form onSubmit={handleForm}>
-        <div>
-          username <input
-            type='text'
-            name='Username'
-            onChange={({ target }) => { setUsername(target.value) }}
-          />
-        </div>
-        <div>
-          password <input
-            type='password'
-            name='Password'
-            onChange={({ target }) => { setPassword(target.value) }}
-          />
-        </div>
-        <button type='submit'>Login</button>
-      </form>
-    </div>
-  )
-}
-
-const CreateNew = ({ title, setTitle, author, setAuthor, url, setUrl, blogs, setBlogs, setMessage }) => {
-  const handleForm = async (event) => {
-    event.preventDefault()
-    const newBlog = {
-      title, author, url
-    }
-    const result = await blogService.create(newBlog)
-    const newBlogs = blogs.concat(result.data)
-    setBlogs(newBlogs)
-    setMessage({
-      message: `added ${result.data.title} by ${result.data.author}`,
-      styleObj: {
-        textAlign: 'center',
-        fontSize: 25,
-        padding: 20,
-        backgroundColor: 'gray',
-        borderRadius: 5,
-        borderWidth: 5,
-        color: 'green',
-        borderStyle: 'solid'
-      }
-    })
-    setTimeout(() => {
-      setMessage({ message: null, styleObj: null })
-    }, 3000)
-  }
-
-  return (
-    <div>
-      <h2>Create New</h2>
-      <form onSubmit={handleForm}>
-        <div>title: <input type='text' onChange={({ target }) => { setTitle(target.value) }} /></div>
-        <div>author: <input type='text' onChange={({ target }) => { setAuthor(target.value) }} /></div>
-        <div>url: <input type='text' onChange={({ target }) => { setUrl(target.value) }} /></div>
-        <button type='submit'>create</button>
-      </form>
-    </div>
-  )
-}
-
-const App = () => {
-  const [blogs, setBlogs] = useState([])
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [user, setUser] = useState(null)
-  const [title, setTitle] = useState('')
-  const [author, setAuthor] = useState('')
-  const [url, setUrl] = useState('')
-  const [message, setMessage] = useState({
-    message: null,
-    styleObj: null
-  })
-
-  useEffect(() => {
-    blogService.getAll().then(blogs =>
-      setBlogs(blogs)
-    )
-  }, [])
-
-  useEffect(() => {
-    blogService.getUser().then(user => { if (user !== null) { setUser(user) } })
-  }, [])
-
   if (user === null) {
     return (
       <div>
@@ -139,14 +79,13 @@ const App = () => {
           message={message}
           setMessage={setMessage}
         />
-        <Login
-          setUsername={setUsername}
-          username={username}
-          password={password}
-          setPassword={setPassword}
-          setUser={setUser}
-          setMessage={setMessage}
-        />
+        <Toggleable buttonLabel='login'>
+          <LoginForm
+            setUsername={setUsername}
+            setPassword={setPassword}
+            handleLoginForm={handleLoginForm}
+          />
+        </Toggleable>
       </div>
     )
   } else {
@@ -166,21 +105,16 @@ const App = () => {
           }}>logout</button>
         </div>
         <div>
-          <CreateNew
-            title={title}
-            setTitle={setTitle}
-            author={author}
-            setAuthor={setAuthor}
-            url={url}
-            setUrl={setUrl}
-            blogs={blogs}
-            setBlogs={setBlogs}
-            setMessage={setMessage}
-          />
+          <Toggleable buttonLabel='new blog' ref={LoginFormRef}>
+            <CreateBlog
+              blogs={blogs}
+              setBlogs={setBlogs}
+              setMessage={setMessage}
+              LoginFormRef={LoginFormRef}
+            />
+          </Toggleable>
         </div>
-        {blogs.map(blog =>
-          <Blog key={blog.id} blog={blog} />
-        )}
+        {blogs.map(blog => <Blog key={blog.id} blog={blog} setBlogs={setBlogs} blogs={blogs} />)}
       </div>
     )
   }

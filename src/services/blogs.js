@@ -1,4 +1,5 @@
 import axios from 'axios'
+import Blog from '../components/Blog'
 const baseUrl = '/api/blogs'
 
 let token = ''
@@ -27,10 +28,16 @@ const create = async (obj) => {
   return result
 }
 
+const remove = async (blog) => {
+  const result = await axios.delete(`${baseUrl}/${blog.id}`, { headers: { Authorization: token } })
+  return result
+}
+
 // eslint-disable-next-line import/no-anonymous-default-export
 export default {
   getAll,
   getUser,
   create,
-  setToken
+  setToken,
+  remove
 }
