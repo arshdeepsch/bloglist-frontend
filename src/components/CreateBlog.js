@@ -1,3 +1,4 @@
+import propTypes from 'prop-types'
 import { useState } from 'react'
 import blogService from '../services/blogs'
 
@@ -45,4 +46,12 @@ const CreateBlog = ({ blogs, setBlogs, setMessage, LoginFormRef }) => {
     )
 }
 
+CreateBlog.propTypes = {
+    blogs: propTypes.array.isRequired,
+    setBlogs: propTypes.func.isRequired,
+    setMessage: propTypes.func.isRequired,
+    LoginFormRef: propTypes.object.isRequired
+}
+
 export default CreateBlog
+
