@@ -1,5 +1,4 @@
 import axios from 'axios'
-import Blog from '../components/Blog'
 const baseUrl = '/api/blogs'
 
 let token = ''
@@ -33,7 +32,6 @@ const remove = async (blog) => {
   return result
 }
 
-// eslint-disable-next-line import/no-anonymous-default-export
 export default {
   getAll,
   getUser,
